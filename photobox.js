@@ -1,111 +1,116 @@
-"use strict";
-(function () {
+const HttpClient = function () {
+    const ME = this;
+
+    ME.get = function (aUrl, aCallback) {
+        let anHttpRequest = new XMLHttpRequest();
+        anHttpRequest.onreadystatechange = function () {
+            if (anHttpRequest.readyState === 4 && anHttpRequest.status === 200)
+                aCallback(anHttpRequest.responseText);
+        };
+
+        anHttpRequest.open("GET", aUrl, true);
+        anHttpRequest.send(null);
+    };
+};
+
+const Photobox = function () {
+    const ME = this;
     const BASE_URL = 'http://flashair';
     const COMMAND_ENDPOINT = '/command.cgi';
     const IMAGE_DIR = '/DCIM';
     const TICKRATE = 500;
     const TICKS_UNTIL_RANDOM = 20;
     const BODY_ELEMENT = document.querySelector('body');
+    const HTTP_CLIENT = new HttpClient();
+    const LIST_ACTION = '?op=100';
+    const UPDATE_ACTION = '?op=102';
 
     let images = [];
     let ticks = 0;
 
-    const HttpClient = function () {
-        this.get = function (aUrl, aCallback) {
-            var anHttpRequest = new XMLHttpRequest();
-            anHttpRequest.onreadystatechange = function () {
-                if (anHttpRequest.readyState == 4 && anHttpRequest.status == 200)
-                    aCallback(anHttpRequest.responseText);
-            };
-
-            anHttpRequest.open("GET", aUrl, true);
-            anHttpRequest.send(null);
-        }
-    };
-
-    function decodeResponse(blob) {
-        blob = blob.substring(17);
-
+    ME.decodeResponse = function (blob) {
         let result = [];
         let lines = blob.split("\n");
 
-        for (let i = 0; i < lines.length - 1; i++) {
+        for (let i = 1; i < lines.length - 1; i++) { // skip first line which is 'WLANSD_FILELIST \n'
 
             let obj = {};
             let currentline = lines[i].split(","); // <directory>, <filename>, <size>, <attribute>, <date>, <time>
 
             obj.directory = currentline[0];
             obj.filename = currentline[1];
-            obj.size = currentline[2];
-            obj.attribute = currentline[3];
-            obj.date = currentline[4];
-            obj.time = currentline[5];
 
             result.push(obj);
         }
 
         return result;
-    }
+    };
 
-    function setBackgroundImage(imageUrl) {
+    ME.setBackgroundImage = function (imageUrl) {
         BODY_ELEMENT.setAttribute('style', 'background-image: url(' + imageUrl + ');');
-    }
+    };
 
-    function setRandomImage() {
+    ME.setRandomImage = function () {
         if (images.length) {
             let randomImage = images[Math.floor(Math.random() * images.length)];
-            setBackgroundImage(BASE_URL + randomImage.directory + '/' + randomImage.filename);
+            ME.setBackgroundImage(BASE_URL + randomImage.directory + '/' + randomImage.filename);
             ticks = TICKS_UNTIL_RANDOM / 2;
         }
-    }
+    };
 
-    function updateImages(dir, forceUpdate) {
-        const httpClient = new HttpClient();
-        const url = BASE_URL + COMMAND_ENDPOINT + '?op=100&DIR=' + dir;
+    ME.updateImages = function (dir, append) {
+        const url = BASE_URL + COMMAND_ENDPOINT + LIST_ACTION + '&DIR=' + dir;
 
-        httpClient.get(url, function (response) {
-            setImages(response, forceUpdate);
+        HTTP_CLIENT.get(url, function (response) {
+            ME.setImages(response, append);
         });
-    }
+    };
 
-    function setImages(blob, forceUpdate) {
-        let decodedImages = decodeResponse(blob);
+    ME.setImages = function (blob, append) {
+        let decodedImages = ME.decodeResponse(blob);
+
+        if (!append) {
+            images = [];
+        }
 
         if (decodedImages[0].size === 0 || decodedImages[0].filename === '100__TSB') {
             for (let i = 0; i < decodedImages.length; i++) {
                 if (decodedImages[i].filename !== '100__TSB') {
-                    updateImages(decodedImages[i].directory + '/' + decodedImages[i].filename, forceUpdate);
+                    ME.updateImages(decodedImages[i].directory + '/' + decodedImages[i].filename, true);
                 }
             }
         } else {
-            images = decodedImages;
-
-            if (images.length && forceUpdate) {
-                setBackgroundImage(BASE_URL + images[images.length - 1].directory + '/' + images[images.length - 1].filename);
+            if (decodedImages.length) {
+                images = images.concat(decodedImages);
+                ME.setBackgroundImage(BASE_URL + images[images.length - 1].directory + '/' + images[images.length - 1].filename);
             }
         }
-    }
+    };
 
-    function checkForUpdates() {
-        const httpClient = new HttpClient();
-        const url = BASE_URL + COMMAND_ENDPOINT + '?op=102';
+    ME.checkForUpdates = function () {
+        const url = BASE_URL + COMMAND_ENDPOINT + UPDATE_ACTION;
 
-        httpClient.get(url, function (response) {
+        HTTP_CLIENT.get(url, function (response) {
             if (response === '1') {
-                updateImages(IMAGE_DIR, true);
+                ME.updateImages(IMAGE_DIR, false);
                 ticks = 0;
             } else {
                 ticks++;
                 if (ticks >= TICKS_UNTIL_RANDOM) {
-                    setRandomImage();
+                    ME.setRandomImage();
                 }
             }
             setTimeout(function () {
-                checkForUpdates();
+                ME.checkForUpdates();
             }, TICKRATE);
         });
-    }
+    };
 
-    updateImages(IMAGE_DIR, true);
-    checkForUpdates();
-})();
+    ME.init = function () {
+        ME.updateImages(IMAGE_DIR, false);
+        ME.checkForUpdates();
+    };
+};
+
+const MY_PHOTOBOX = new Photobox();
+MY_PHOTOBOX.init();
