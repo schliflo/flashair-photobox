@@ -17,13 +17,14 @@ const Photobox = function () {
     const ME = this;
     const BASE_URL = 'http://flashair';
     const COMMAND_ENDPOINT = '/command.cgi';
+    const THUMBNAIL_ENDPOINT = '/thumbnail.cgi';
     const IMAGE_DIR = '/DCIM';
     const TICKRATE = 500;
     const TICKS_UNTIL_RANDOM = 20;
-    const BODY_ELEMENT = document.querySelector('body');
     const HTTP_CLIENT = new HttpClient();
     const LIST_ACTION = '?op=100';
     const UPDATE_ACTION = '?op=102';
+    const BODY = document.querySelector('body');
 
     let images = [];
     let ticks = 0;
@@ -46,14 +47,45 @@ const Photobox = function () {
         return result;
     };
 
-    ME.setBackgroundImage = function (imageUrl) {
-        BODY_ELEMENT.setAttribute('style', 'background-image: url(' + imageUrl + ');');
+    ME.getThumbnailUrl = function (imagePath) {
+        return BASE_URL + THUMBNAIL_ENDPOINT + '?' + imagePath;
+    };
+
+    ME.displayImage = function (imagePath) {
+        let currentImages = document.querySelectorAll('.fullscreen');
+        let thumbEl = document.createElement('div');
+        let thumbImg = new Image();
+        let imageEl = document.createElement('div');
+        let imageImg = new Image();
+
+        thumbImg.src = ME.getThumbnailUrl(imagePath);
+        imageImg.src = BASE_URL + imagePath;
+
+        thumbImg.onload = function() {
+            thumbEl.classList.add('in');
+        };
+
+        imageImg.onload = function() {
+            imageEl.classList.add('in');
+            Array.prototype.forEach.call(currentImages, function (node) {
+                node.remove();
+            });
+        };
+
+        thumbEl.classList.add('fullscreen');
+        thumbEl.setAttribute('style', 'background-image: url(' + ME.getThumbnailUrl(imagePath) + ');');
+
+        imageEl.classList.add('fullscreen');
+        imageEl.setAttribute('style', 'background-image: url(' + BASE_URL + imagePath + ');');
+
+        BODY.appendChild(thumbEl);
+        BODY.appendChild(imageEl);
     };
 
     ME.setRandomImage = function () {
         if (images.length) {
             let randomImage = images[Math.floor(Math.random() * images.length)];
-            ME.setBackgroundImage(BASE_URL + randomImage.directory + '/' + randomImage.filename);
+            ME.displayImage(randomImage.directory + '/' + randomImage.filename);
             ticks = TICKS_UNTIL_RANDOM / 2;
         }
     };
@@ -82,7 +114,7 @@ const Photobox = function () {
         } else {
             if (decodedImages.length) {
                 images = images.concat(decodedImages);
-                ME.setBackgroundImage(BASE_URL + images[images.length - 1].directory + '/' + images[images.length - 1].filename);
+                ME.displayImage(images[images.length - 1].directory + '/' + images[images.length - 1].filename);
             }
         }
     };

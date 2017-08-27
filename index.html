@@ -11,10 +11,29 @@
             width: 100vw;
             height: 100vh;
             background-color: #000;
+            cursor: none;
+        }
+
+        .fullscreen {
+            position: absolute;
+            height: 100%;
+            width: 100%;
             background-size: contain;
             background-repeat: no-repeat;
             background-position: center center;
-            cursor: none;
+            opacity: 0;
+            transition: 0.5s ease-out;
+        }
+
+        .fullscreen.in {
+            opacity: 1;
+        }
+
+        img {
+            position: absolute;
+            height: 1px;
+            width: 1px;
+            opacity: 0;
         }
     </style>
 </head>
