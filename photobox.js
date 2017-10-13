@@ -19,8 +19,8 @@ const Photobox = function () {
     const COMMAND_ENDPOINT = '/command.cgi';
     const THUMBNAIL_ENDPOINT = '/thumbnail.cgi';
     const IMAGE_DIR = '/DCIM';
-    const TICKRATE = 500;
-    const TICKS_UNTIL_RANDOM = 20;
+    const TICKRATE = 750;
+    const TICKS_UNTIL_RANDOM = 15;
     const HTTP_CLIENT = new HttpClient();
     const LIST_ACTION = '?op=100';
     const UPDATE_ACTION = '?op=102';
