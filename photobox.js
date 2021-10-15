@@ -13,6 +13,16 @@ const HttpClient = function () {
     };
 };
 
+function toggleFullScreen() {
+    if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen();
+    } else {
+        if (document.exitFullscreen) {
+            document.exitFullscreen();
+        }
+    }
+}
+
 const Photobox = function () {
     const ME = this;
     const BASE_URL = 'http://flashair';
@@ -139,6 +149,16 @@ const Photobox = function () {
     };
 
     ME.init = function () {
+        // add fullscreen toggle
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                toggleFullScreen();
+            }
+        }, false);
+        document.addEventListener('click', function(e) {
+            toggleFullScreen();
+        }, false);
+
         ME.updateImages(IMAGE_DIR, false);
         ME.checkForUpdates();
     };
